@@ -185,7 +185,6 @@ const RemovableInput = ({ label, value, onChange, onRemove, icon: Icon }) => (
     </div>
 );
 
-// --- QuotaProgressBar เวอร์ชัน Dashboard (ลบ % ออก) ---
 const QuotaProgressBarDashboard = ({ label, used = 0, limit = 0, color, maxCap }) => {
     const visualLimit = limit > 0 ? limit : (maxCap || 100000); 
     const percent = Math.min((used / visualLimit) * 100, 100).toFixed(0);
@@ -244,7 +243,6 @@ const TaxBracketVisual = ({ netIncome }) => {
              <div className="w-full bg-slate-950 rounded-full h-3 mb-3 relative overflow-hidden border border-white/5">
                   <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(168,85,247,0.5)]" style={{ width: `${progress}%` }}></div>
              </div>
-             {/* ลบ Current Bracket Range filled ออกแล้ว */}
              {nextRate !== null ? (
                  <div className="flex justify-between items-center text-xs">
                      <span className="text-slate-500">ฐาน {rate}%</span>
@@ -365,14 +363,16 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           <div className="lg:col-span-8 space-y-6">
+             {/* 1. Income Section (ลบ overflow-hidden ออกแล้ว) */}
              <div className="bg-slate-800/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                 <SectionHeader icon={Banknote} title="รายได้ (Income)" subtitle="แหล่งที่มาของเงินได้" />
                 <div className="space-y-2">
                     {activeIncomeTypes.map(typeId => { const option = INCOME_OPTIONS.find(o => o.id === typeId); return <RemovableInput key={typeId} label={option.label} icon={option.icon} value={incomeSources[typeId]} onChange={(v) => updateIncome(typeId, v)} onRemove={() => removeIncomeType(typeId)} />; })}
                 </div>
                 <div className="relative mt-6" ref={addMenuRef}>
                     <button onClick={() => setShowAddMenu(!showAddMenu)} className="w-full py-4 border border-dashed border-slate-600 rounded-xl text-slate-400 font-medium hover:border-yellow-400 hover:text-yellow-400 transition-all flex items-center justify-center gap-2 group"><Plus size={20} className="group-hover:rotate-90 transition-transform"/> เพิ่มรายการรายได้</button>
-                    {showAddMenu && (<div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-white/10 rounded-xl shadow-2xl z-50 p-2 max-h-60 overflow-y-auto">{availableIncomeOptions.map(option => (<button key={option.id} onClick={() => addIncomeType(option.id)} className="flex items-center gap-3 px-3 py-3 hover:bg-white/5 rounded-lg text-left w-full text-slate-300 hover:text-white"><option.icon size={18} className="text-yellow-400" /><span className="text-sm">{option.label}</span></button>))}</div>)}
+                    {showAddMenu && (<div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-white/10 rounded-xl shadow-2xl z-[100] p-2 max-h-60 overflow-y-auto">{availableIncomeOptions.map(option => (<button key={option.id} onClick={() => addIncomeType(option.id)} className="flex items-center gap-3 px-3 py-3 hover:bg-white/5 rounded-lg text-left w-full text-slate-300 hover:text-white"><option.icon size={18} className="text-yellow-400" /><span className="text-sm">{option.label}</span></button>))}</div>)}
                 </div>
              </div>
 
@@ -435,7 +435,7 @@ export default function App() {
                   </div>
                   {result && <TaxBracketVisual netIncome={result.netIncome} />}
                   
-                  {/* Dashboard Progress Bars (ลบ % และเปลี่ยนชื่อหัวข้อแล้ว) */}
+                  {/* Dashboard Progress Bars (รายการลดหย่อนภาษีที่สำคัญ) */}
                   <div className="space-y-3 bg-slate-900/50 p-4 rounded-2xl border border-white/5 mb-6 relative z-10">
                       <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">รายการลดหย่อนภาษีที่สำคัญ</h5>
                       <QuotaProgressBarDashboard label="ประกันชีวิตทั่วไป" used={result?.quotas.lifeInsurance?.used} limit={result?.quotas.lifeInsurance?.limit} maxCap={100000} color="bg-pink-500 text-pink-500" />
