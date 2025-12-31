@@ -146,9 +146,10 @@ const DynamicDeductionInput = ({ config, value, onChange, onRemove, quota }) => 
                </div>
                {showProgress && (
                   <div className="mt-2.5">
-                    <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
-                        <span>Progress</span>
+                    {/* เปอร์เซ็นต์ด้านซ้าย */}
+                    <div className="flex items-center gap-2 mb-1 text-[10px] font-bold uppercase tracking-tighter">
                         <span className={quota.over > 0 ? 'text-red-400' : 'text-teal-400'}>{percent}%</span>
+                        <span className="text-slate-600">used</span>
                     </div>
                     <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
                       <div className={`h-1.5 rounded-full shadow-[0_0_10px_currentColor] transition-all duration-500 ${quota.over > 0 ? 'bg-red-500 text-red-500' : 'bg-teal-400 text-teal-400'}`} style={{ width: `${percent}%` }}></div>
@@ -363,8 +364,8 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           <div className="lg:col-span-8 space-y-6">
-             {/* 1. Income Section (ลบ overflow-hidden ออกแล้ว) */}
-             <div className="bg-slate-800/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl relative">
+             {/* รายได้ Section (z-20 เพื่อให้เมนูเด้งทับ Layer อื่น) */}
+             <div className="bg-slate-800/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl relative z-20">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                 <SectionHeader icon={Banknote} title="รายได้ (Income)" subtitle="แหล่งที่มาของเงินได้" />
                 <div className="space-y-2">
@@ -376,7 +377,7 @@ export default function App() {
                 </div>
              </div>
 
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                 <div className="bg-slate-800/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl">
                    <SectionHeader icon={Users} title="ครอบครัว" subtitle="ค่าลดหย่อนส่วนตัว & ครอบครัว" />
                    <div className="space-y-1">
@@ -402,7 +403,7 @@ export default function App() {
                 </div>
              </div>
 
-             <div className="bg-slate-800/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl relative">
+             <div className="bg-slate-800/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl relative z-0">
                   <div className="flex flex-col md:flex-row gap-8">
                       <div className="flex-1">
                           <SectionHeader icon={TrendingUp} title="การลงทุน" subtitle="Thai ESG / RMF / SSF" />
@@ -435,7 +436,7 @@ export default function App() {
                   </div>
                   {result && <TaxBracketVisual netIncome={result.netIncome} />}
                   
-                  {/* Dashboard Progress Bars (รายการลดหย่อนภาษีที่สำคัญ) */}
+                  {/* Dashboard Progress Bars */}
                   <div className="space-y-3 bg-slate-900/50 p-4 rounded-2xl border border-white/5 mb-6 relative z-10">
                       <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">รายการลดหย่อนภาษีที่สำคัญ</h5>
                       <QuotaProgressBarDashboard label="ประกันชีวิตทั่วไป" used={result?.quotas.lifeInsurance?.used} limit={result?.quotas.lifeInsurance?.limit} maxCap={100000} color="bg-pink-500 text-pink-500" />
