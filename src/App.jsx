@@ -7,7 +7,8 @@ import {
   Umbrella, HeartPulse, Clock, Heart,
   Sprout, Landmark, GraduationCap, PiggyBank, Leaf,
   Receipt, Palmtree, Palette, Hammer, Flag, Heart as HeartIcon,
-  LayoutDashboard, Target, BarChart3, ChevronDown, ChevronUp, X, Check, ArrowRight
+  LayoutDashboard, Target, BarChart3, ChevronDown, ChevronUp, X, Check, ArrowRight,
+  FileText // เพิ่ม icon สำหรับภาษีหัก ณ ที่จ่าย
 } from 'lucide-react';
 
 // --- Config: รายได้ ---
@@ -186,6 +187,27 @@ const RemovableInput = ({ label, value, onChange, onRemove, icon: Icon }) => (
     </div>
 );
 
+// Component ย่อยสำหรับช่องภาษีหัก ณ ที่จ่าย
+const WithholdingTaxInput = ({ value, onChange }) => (
+    <div className="mb-6 -mt-3 ml-4 pl-4 border-l border-white/10 animate-fade-in-up">
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-2">
+            <FileText size={14} className="text-blue-400" />
+            ภาษีหัก ณ ที่จ่าย (สะสมทั้งปี)
+        </label>
+        <div className="relative">
+            <input 
+                type="number" 
+                inputMode="numeric" 
+                value={value || ''} 
+                onChange={(e) => onChange(parseFloat(e.target.value) || 0)} 
+                className="block w-full pl-3 pr-10 py-2.5 bg-slate-900/40 border border-white/10 rounded-lg focus:border-blue-400 focus:ring-1 focus:ring-blue-400/20 outline-none font-medium text-white placeholder:text-slate-600 transition-all text-sm" 
+                placeholder="0" 
+            />
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><span className="text-slate-500 text-xs">THB</span></div>
+        </div>
+    </div>
+);
+
 const QuotaProgressBarDashboard = ({ label, used = 0, limit = 0, color, maxCap }) => {
     const visualLimit = limit > 0 ? limit : (maxCap || 100000); 
     const percent = Math.min((used / visualLimit) * 100, 100).toFixed(0);
@@ -254,14 +276,14 @@ const TaxBracketVisual = ({ netIncome }) => {
     );
 };
 
-const TaxBreakdownList = ({ incomeSources, deductions }) => {
+const TaxBreakdownList = ({ incomeSources, deductions, withholdingTax }) => {
     const activeIncomes = INCOME_OPTIONS.filter(opt => (incomeSources[opt.id] || 0) > 0).map(opt => ({ label: opt.label, value: incomeSources[opt.id] }));
     const activeDeductions = Object.keys(deductions).filter(key => {
         if (typeof deductions[key] === 'boolean') return deductions[key] === true;
         return (deductions[key] || 0) > 0;
     }).map(key => ({ label: DEDUCTION_LABELS[key] || key, value: deductions[key], isBoolean: typeof deductions[key] === 'boolean' }));
 
-    if (activeIncomes.length === 0 && activeDeductions.length === 0) return null;
+    if (activeIncomes.length === 0 && activeDeductions.length === 0 && withholdingTax === 0) return null;
 
     return (
         <div className="bg-slate-800/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 mt-6 shadow-xl">
@@ -270,6 +292,11 @@ const TaxBreakdownList = ({ incomeSources, deductions }) => {
                  <div className="mb-4">
                      <p className="text-xs font-semibold text-slate-500 mb-2">รายได้ที่นำมาคิด</p>
                      <div className="space-y-1">{activeIncomes.map((item, idx) => (<div key={idx} className="flex justify-between text-xs text-slate-300"><span>{item.label}</span><span className="font-mono text-white">{item.value.toLocaleString()}</span></div>))}</div>
+                 </div>
+             )}
+             {withholdingTax > 0 && (
+                 <div className="mb-4">
+                     <div className="flex justify-between text-xs text-blue-300"><span>ภาษีหัก ณ ที่จ่าย</span><span className="font-mono text-white">{withholdingTax.toLocaleString()}</span></div>
                  </div>
              )}
              {activeIncomes.length > 0 && activeDeductions.length > 0 && <hr className="my-3 border-white/10"/>}
@@ -288,6 +315,7 @@ const TaxBreakdownList = ({ incomeSources, deductions }) => {
 
 export default function App() {
   const [incomeSources, setIncomeSources] = useState({});
+  const [withholdingTax, setWithholdingTax] = useState(0); // State สำหรับภาษีหัก ณ ที่จ่าย
   const [activeIncomeTypes, setActiveIncomeTypes] = useState(['salary']);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const addMenuRef = useRef(null);
@@ -322,7 +350,11 @@ export default function App() {
 
   const updateIncome = (f, v) => setIncomeSources(p => ({ ...p, [f]: v }));
   const addIncomeType = (id) => { if (!activeIncomeTypes.includes(id)) setActiveIncomeTypes([...activeIncomeTypes, id]); setShowAddMenu(false); };
-  const removeIncomeType = (id) => { setActiveIncomeTypes(activeIncomeTypes.filter(t => t !== id)); updateIncome(id, 0); };
+  const removeIncomeType = (id) => { 
+      setActiveIncomeTypes(activeIncomeTypes.filter(t => t !== id)); 
+      updateIncome(id, 0); 
+      if(id === 'salary') setWithholdingTax(0); // Reset withholding tax if salary is removed
+  };
   const updateDeduction = (f, v) => setDeductions(p => ({ ...p, [f]: v }));
   const addFamilyType = (id, type) => { if (!activeFamilyTypes.includes(id)) setActiveFamilyTypes([...activeFamilyTypes, id]); if (type === 'boolean') updateDeduction(id, true); setShowAddFamilyMenu(false); };
   const removeFamilyType = (id) => { setActiveFamilyTypes(activeFamilyTypes.filter(t => t !== id)); updateDeduction(id, 0); };
@@ -338,6 +370,10 @@ export default function App() {
   const availableInsuranceOptions = INSURANCE_OPTIONS.filter(opt => !activeInsuranceTypes.includes(opt.id));
   const availableInvestmentOptions = INVESTMENT_OPTIONS.filter(opt => !activeInvestmentTypes.includes(opt.id));
   const availablePropDonOptions = PROPERTY_DONATION_OPTIONS.filter(opt => !activePropDonTypes.includes(opt.id));
+
+  // คำนวณยอดสุทธิ (ภาษีที่คำนวณได้ - ภาษีที่จ่ายไปแล้ว)
+  const finalTaxPayable = result ? result.taxPayable - withholdingTax : 0;
+  const isRefund = finalTaxPayable < 0;
 
   return (
     <div className="min-h-screen bg-[#020B2D] font-sans text-slate-200 selection:bg-teal-500 selection:text-white relative"> 
@@ -364,12 +400,23 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           <div className="lg:col-span-8 space-y-6">
-             {/* รายได้ Section (z-20 เพื่อให้เมนูเด้งทับ Layer อื่น) */}
+             {/* รายได้ Section */}
              <div className="bg-slate-800/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl relative z-20">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                 <SectionHeader icon={Banknote} title="รายได้ (Income)" subtitle="แหล่งที่มาของเงินได้" />
                 <div className="space-y-2">
-                    {activeIncomeTypes.map(typeId => { const option = INCOME_OPTIONS.find(o => o.id === typeId); return <RemovableInput key={typeId} label={option.label} icon={option.icon} value={incomeSources[typeId]} onChange={(v) => updateIncome(typeId, v)} onRemove={() => removeIncomeType(typeId)} />; })}
+                    {activeIncomeTypes.map(typeId => { 
+                        const option = INCOME_OPTIONS.find(o => o.id === typeId); 
+                        return (
+                            <div key={typeId}>
+                                <RemovableInput label={option.label} icon={option.icon} value={incomeSources[typeId]} onChange={(v) => updateIncome(typeId, v)} onRemove={() => removeIncomeType(typeId)} />
+                                {/* แทรกช่องภาษีหัก ณ ที่จ่าย เฉพาะเงินเดือน */}
+                                {typeId === 'salary' && (
+                                    <WithholdingTaxInput value={withholdingTax} onChange={setWithholdingTax} />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
                 <div className="relative mt-6" ref={addMenuRef}>
                     <button onClick={() => setShowAddMenu(!showAddMenu)} className="w-full py-4 border border-dashed border-slate-600 rounded-xl text-slate-400 font-medium hover:border-yellow-400 hover:text-yellow-400 transition-all flex items-center justify-center gap-2 group"><Plus size={20} className="group-hover:rotate-90 transition-transform"/> เพิ่มรายการรายได้</button>
@@ -431,8 +478,10 @@ export default function App() {
               <div className="bg-slate-800/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden relative group p-6">
                   <div className="absolute -top-20 -right-20 w-60 h-60 bg-teal-500/20 rounded-full blur-[80px] group-hover:bg-teal-400/30 transition-all duration-1000"></div>
                   <div className="text-center mb-6 relative z-10">
-                    <p className="text-slate-400 text-sm font-medium mb-1 uppercase tracking-widest">ภาษีที่ต้องชำระ</p>
-                    <div className="text-5xl font-extrabold text-white flex justify-center items-baseline gap-2">{result?.taxPayable.toLocaleString(undefined, {maximumFractionDigits: 0})} <span className="text-xl font-medium text-slate-500">THB</span></div>
+                    <p className="text-slate-400 text-sm font-medium mb-1 uppercase tracking-widest">{isRefund ? 'ได้รับเงินคืน (ประมาณ)' : 'ภาษีที่ต้องชำระเพิ่ม'}</p>
+                    <div className={`text-5xl font-extrabold flex justify-center items-baseline gap-2 ${isRefund ? 'text-emerald-400' : 'text-white'}`}>
+                        {Math.abs(finalTaxPayable).toLocaleString(undefined, {maximumFractionDigits: 0})} <span className="text-xl font-medium text-slate-500">THB</span>
+                    </div>
                   </div>
                   {result && <TaxBracketVisual netIncome={result.netIncome} />}
                   
@@ -453,7 +502,7 @@ export default function App() {
                       </div>
                   )}
               </div>
-              <TaxBreakdownList incomeSources={incomeSources} deductions={deductions} />
+              <TaxBreakdownList incomeSources={incomeSources} deductions={deductions} withholdingTax={withholdingTax} />
             </div>
           </div>
         </div>
@@ -464,11 +513,11 @@ export default function App() {
               <div className="absolute bottom-full left-0 right-0 bg-[#020B2D] border-t border-white/10 p-6 rounded-t-2xl max-h-[75vh] overflow-y-auto">
                  <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg text-white">สรุปรายละเอียด</h3><button onClick={() => setIsMobileDetailOpen(false)} className="p-1 bg-white/10 rounded-full"><X size={20} className="text-white" /></button></div>
                  {result && <TaxBracketVisual netIncome={result.netIncome} />}
-                 <TaxBreakdownList incomeSources={incomeSources} deductions={deductions} />
+                 <TaxBreakdownList incomeSources={incomeSources} deductions={deductions} withholdingTax={withholdingTax} />
               </div>
            )}
            <div className="flex justify-between items-center">
-               <div><p className="text-xs text-slate-400">Tax Payable</p><p className="text-2xl font-bold text-white">{result?.taxPayable.toLocaleString()} THB</p></div>
+               <div><p className="text-xs text-slate-400">{isRefund ? 'ได้รับเงินคืน' : 'ภาษีที่ต้องชำระ'}</p><p className={`text-2xl font-bold ${isRefund ? 'text-emerald-400' : 'text-white'}`}>{Math.abs(finalTaxPayable).toLocaleString()} THB</p></div>
                <button onClick={() => setIsMobileDetailOpen(!isMobileDetailOpen)} className="bg-yellow-400 text-[#020B2D] px-6 py-2 rounded-full font-bold text-sm">{isMobileDetailOpen ? 'Close' : 'Details'}</button>
            </div>
       </div>
